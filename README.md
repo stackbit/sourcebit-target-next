@@ -135,7 +135,34 @@ methods
 
 ## Sourcebit Configuration
 
-The plugin receives two options:
+The plugin configured with two options - `pageTypes` and `propsMap`:
+
+`sourcebit.js`:
+```js
+module.exports = {
+    plugins: [
+        ...otherPlugins,
+        {
+            module: require('sourcebit-target-next'),
+            options: {
+                // Define which source objects represent pages and what are their paths.
+                // These objects will be provided to getStaticProps by path.
+                pageTypes: [
+                    { path: '/{slug}', predicate: _.matchesProperty('_type', 'page') },
+                    { path: '/{slug}', predicate: _.matchesProperty('_type', 'special_page') },
+                    { path: '/blog/{slug}', predicate: _.matchesProperty('_type', 'post') }
+                ],
+                // Define props that will be provided to all pages
+                propsMap: {
+                    config: { single: true, predicate: _.matchesProperty('_type', 'site_config') },
+                    posts: { predicate: _.matchesProperty('_type', 'post') }
+                }
+            }
+        }
+    ]
+};
+
+```
 
 1. `pageTypes` (array) Array of objects mapping entries fetched by one of the
    source plugins to props that will be provided to a **specific page identified
