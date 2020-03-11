@@ -7,14 +7,14 @@ A Sourcebit target plugin for the [Next.js](https://nextjs.org/) framework.
 ## Overview
 
 This plugin leverages [Next.js SSG capabilities](https://nextjs.org/blog/next-9-3#next-gen-static-site-generation-ssg-support)
-to provide content from any Sourcebit data source, such as Headless CMS, into
+to provide content from any Sourcebit data source, such as a headless CMS, into
 React page components as properties using [getStaticProps](https://nextjs.org/docs/basic-features/data-fetching#getstaticprops-static-generation)
 and [getStaticPaths](https://nextjs.org/docs/basic-features/data-fetching#getstaticpaths-static-generation)
 methods
 
 ## Installation
 
-1. Install sourcebit and the plugin:
+1. Install Sourcebit and the plugin:
 
    ```
    npm install sourcebit sourcebit-target-next
@@ -31,19 +31,19 @@ methods
    ```
 
 3. To provide data fetched by Sourcebit to pages, update `getStaticPaths` and
-   `getStaticProps` methods of your page components in the following way:
+   `getStaticProps` methods of your page components:
 
-    - If a page does not use [dynamic routes](https://nextjs.org/docs/routing/dynamic-routes)
+    - If a page does not use [dynamic routes](https://nextjs.org/docs/routing/dynamic-routes),
       then it should only have the `getStaticProps` method. To pass the data
-      fetched by sourcebit to a page, update its `getStaticProps` by calling
-      `sourcebitDataClient.getStaticPropsForPageAtPath(path)` method and
+      fetched by Sourcebit to a page, update its `getStaticProps` by calling
+      `sourcebitDataClient.getStaticPropsForPageAtPath(path)` and
       returning the props returned from it. The `path` parameter should be the
       URL path of the rendered page.
       
       For example, if the page component is `index.js`, then the path would be 
       `/`, and if the page component is `about.js`, then the path would be `/about`.
       
-      For example, given a page component at `pages/index.js`, the code would
+      For instance, given a page component at `pages/index.js`, the code would
       look like this:
       
       ```js
@@ -59,7 +59,7 @@ methods
       then it should have both `getStaticProps` and `getStaticPaths` methods.
       
       Similar to the previous example, use `getStaticPropsForPageAtPath(path)` 
-      to get the static props. But in this case, the `path` parameter can not be
+      to get the static props. But in this case, the `path` parameter cannot be
       constant. Instead it should be computed by applying `params` provided by
       the `getStaticProps` to the pattern of the dynamic route.
       
@@ -77,9 +77,9 @@ methods
       ```
       
       Use `sourcebitDataClient.getStaticPaths()` to get the static paths of
-      pages and return them from `getStaticPaths`. Note: `sourcebitDataClient.getStaticPaths()`
-      return paths for all pages, therefore you will need to filter them to
-      return only these that are supported by dynamic route of the given page.
+      pages and return them from `getStaticPaths`. Note that `sourcebitDataClient.getStaticPaths()`
+      returns paths for all pages, therefore you will need to filter them to
+      return only those that are supported by the dynamic route of the given page.
       
       For example, if you have two pages with dynamic routes, each will have to
       filter its own static paths:
@@ -120,7 +120,7 @@ methods
       ```
 
 4. To update the browser with live content changes while running `next dev`, wrap
-   your pages with following HOC:
+   your pages with following higher order component (HOC):
    
    ```js
    import withRemoteDataUpdates from 'sourcebit-target-next/withRemoteDataUpdates';
@@ -136,7 +136,7 @@ methods
 
 ## Sourcebit Configuration
 
-The plugin configured with two options - `pageTypes` and `propsMap`:
+The plugin is configured with two options - `pageTypes` and `propsMap`:
 
 `sourcebit.js`:
 ```js
@@ -165,18 +165,18 @@ module.exports = {
 
 ```
 
-1. `pageTypes` (array) Array of objects mapping entries fetched by one of the
+1. `pageTypes` (array) An array of objects mapping entries fetched by one of the
    source plugins to props that will be provided to a **specific page identified
    by its path** via `getStaticProps`.
    
    Every object should define two fields `path` and `predicate`. The `predicate`
    is used to filter entries fetched by source plugins. While the `path` is used
    to generate the URL path of the page. The `path` parameter can use tokens in
-   form of `{token_name}` where each `token_name` is a field of an entry.
+   form of `{token_name}` where each `token_name` is a field of an entry from the source plugin.
    
-   Eventually, when calling `sourcebitDataClient.getStaticPropsForPageAtPath(pagePath)`
+   When calling `sourcebitDataClient.getStaticPropsForPageAtPath(pagePath)`
    from within `getStaticProps`, the returned value will be an object with two
-   properties `page` holding the actual page entry and `path` matching the
+   properties: `page` holding the actual page entry; and `path` matching the
    `pagePath` passed to `getStaticPropsForPageAtPath`.
    
    For example:
@@ -205,19 +205,19 @@ module.exports = {
    }
    ```  
     
-2. `propsMap` (object) Object mapping entries fetched by one of the source
+2. `propsMap` (object) An object mapping entries fetched by one of the source
    plugins to props that will be provided to **all page components** via
    `getStaticProps`.
    
    The keys of the object specify the propery names that will be provided to
    page components, and their values specify what data should go into these
-   properties. Every value should be an object with `predicate` field.
+   properties. Every value should be an object with a `predicate` field.
    The `predicate` is used to filter entries fetched by source plugins.
-   Additionally, a boolean field `single` can be used to specify that property
-   should reference a single entry rather list of entries. If `single: true` and
-   there are multiple entries, the first one will be selected. 
+   Additionally, a boolean field `single` can be used to specify a property that
+   should reference a single entry rather list of entries. If `single: true` is applied
+   to multiple entries, only the first one will be selected. 
    
-   Eventually, when calling `sourcebitDataClient.getStaticPropsForPageAtPath(pagePath)`
+   When calling `sourcebitDataClient.getStaticPropsForPageAtPath(pagePath)`
    from within `getStaticProps`, the returned value will be an object with two
    predefined properties `page` and `path` as described above, plus all the
    properties defined by this map.
@@ -246,7 +246,7 @@ module.exports = {
 
 You can check out an [example project](https://github.com/stackbithq/azimuth-nextjs-sanity)
 that uses `sourcebit-source-sanity` and `sourcebit-target-next` plugins to fetch
-the data from [Sanity.io](https://www.sanity.io/) Headless CMS and feed it into
+the data from [Sanity.io](https://www.sanity.io/) and feed it into
 Next.js page components.
 
 ## Tips
