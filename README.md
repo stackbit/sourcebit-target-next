@@ -20,8 +20,9 @@ methods
    npm install sourcebit sourcebit-target-next
    ``` 
 
-2. Import sourcebit and `sourcebit.js` configuration file in your `next.config.js` file (the next section will
-   explain how to configure `sourcebit.js` file):
+2. Import `sourcebit` and `sourcebit.js` configuration file into your
+   `next.config.js` file (the next section will explain how to configure
+   `sourcebit.js` file):
 
    ```js
    const sourcebit = require('sourcebit');
@@ -29,24 +30,22 @@ methods
    sourcebit.fetch(sourcebitConfig);
    ```
 
-3. Update `getStaticPaths` and `getStaticProps` of your page components in the
-   following way to get static props from sourcebit plugin.
+3. To provide data fetched by Sourcebit to pages, update `getStaticPaths` and
+   `getStaticProps` methods of your page components in the following way:
 
-    - Import `sourcebitDataClient` from the plugin:
-    
-      ```js
-      import { sourcebitDataClient } from 'sourcebit-target-next';
-      ```
-    
     - If a page does not use [dynamic routes](https://nextjs.org/docs/routing/dynamic-routes)
-      then it should only have the `getStaticProps` method. Update it to fetch
-      static props using the `sourcebitDataClient.getStaticPropsForPageAtPath(path)`,
-      where `path` is the URL path of the rendered page.
+      then it should only have the `getStaticProps` method. To pass the data
+      fetched by sourcebit to a page, update its `getStaticProps` by calling
+      `sourcebitDataClient.getStaticPropsForPageAtPath(path)` method and
+      returning the props returned from it. The `path` parameter should be the
+      URL path of the rendered page.
       
-      For example, if the page component is `index.js`, then the path should be 
-      `/`, and if the page component is `about.js`, then the path should be `/about`.
+      For example, if the page component is `index.js`, then the path would be 
+      `/`, and if the page component is `about.js`, then the path would be `/about`.
       
-      `pages/index.js`
+      For example, given a page component at `pages/index.js`, the code would
+      look like this:
+      
       ```js
       import { sourcebitDataClient } from 'sourcebit-target-next';
       
@@ -60,11 +59,13 @@ methods
       then it should have both `getStaticProps` and `getStaticPaths` methods.
       
       Similar to the previous example, use `getStaticPropsForPageAtPath(path)` 
-      inside `getStaticProps` to fetch static props using `getStaticPropsForPageAtPath(path)`.
-      The `path` should be created by applying `params` passed to the `getStaticProps`
-      to the pattern of the dynamic route.
+      to get the static props. But in this case, the `path` parameter can not be
+      constant. Instead it should be computed by applying `params` provided by
+      the `getStaticProps` to the pattern of the dynamic route.
       
-      `pages/[...slug].js`
+      For example, given a page component at `pages/[...slug].js`, the code
+      would look like this:
+      
       ```js
       import { sourcebitDataClient } from 'sourcebit-target-next';
       
@@ -75,13 +76,13 @@ methods
       }
       ```
       
-      Use `sourcebitDataClient.getStaticPaths()` to get the paths of all of the
+      Use `sourcebitDataClient.getStaticPaths()` to get the static paths of
       pages and return them from `getStaticPaths`. Note: `sourcebitDataClient.getStaticPaths()`
-      returns all paths of all pages, therefore you will need to filter them only
-      to these, that are supported by dynamic routes of the given page.
+      return paths for all pages, therefore you will need to filter them to
+      return only these that are supported by dynamic route of the given page.
       
-      For example, if you have two pages with dynamic routes, each will have to filter
-      its own paths:
+      For example, if you have two pages with dynamic routes, each will have to
+      filter its own static paths:
       
       `pages/post/[pid].js`
       ```js
@@ -148,14 +149,14 @@ module.exports = {
                 // Define which source objects represent pages and what are their paths.
                 // These objects will be provided to getStaticProps by path.
                 pageTypes: [
-                    { path: '/{slug}', predicate: _.matchesProperty('_type', 'page') },
-                    { path: '/{slug}', predicate: _.matchesProperty('_type', 'special_page') },
-                    { path: '/blog/{slug}', predicate: _.matchesProperty('_type', 'post') }
+                    { path: '/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'page') },
+                    { path: '/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'special_page') },
+                    { path: '/blog/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'post') }
                 ],
                 // Define props that will be provided to all pages
                 propsMap: {
-                    config: { single: true, predicate: _.matchesProperty('_type', 'site_config') },
-                    posts: { predicate: _.matchesProperty('_type', 'post') }
+                    config: { single: true, predicate: _.matchesProperty('__metadata.modelName', 'site_config') },
+                    posts: { predicate: _.matchesProperty('__metadata.modelName', 'post') }
                 }
             }
         }
