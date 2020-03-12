@@ -36,15 +36,32 @@ function startStaticPropsWatcher({ wsPort }) {
     });
 }
 
-function reduceAndTransformData(data, { pageTypes, propsMap }) {
+function reduceAndTransformData(data, { commonProps, pages }) {
     return {
-        props: reducePropsMap(propsMap, data),
-        pages: reducePageTypes(pageTypes, data)
+        props: reducePropsMap(commonProps, data),
+        pages: reducePages(pages, data)
     };
 }
 
-function reducePageTypes(pageTypes, data) {
-    return _.reduce(pageTypes, (accum, pageTypeDef) => {
+function reducePages(pages, data) {
+    if (typeof pages === 'function') {
+        const pageObjects = pages(data)
+
+        return _.reduce(pageObjects, (accum, item) => {
+            let urlPath;
+            try {
+                urlPath = interpolatePagePath(item.path, item.page);
+            } catch (e) {
+                return accum;
+            }
+
+            return _.concat(accum, _.assign(
+                item, { path: urlPath }
+            ));
+        }, [])
+    }
+
+    return _.reduce(pages, (accum, pageTypeDef) => {
         const pages = _.filter(data, pageTypeDef.predicate);
         const pathTemplate = pageTypeDef.path || '/{slug}';
         return _.reduce(pages, (accum, page) => {
@@ -56,14 +73,18 @@ function reducePageTypes(pageTypes, data) {
             }
             return _.concat(accum, {
                 path: urlPath,
-                data: page,
-                props: reducePropsMap(pageTypeDef.propsMap, data)
+                page: page,
+                ...reducePropsMap(pageTypeDef.propsMap, data)
             });
         }, accum)
     }, []);
 }
 
 function reducePropsMap(propsMap, data) {
+    if (typeof propsMap === 'function') {
+        return propsMap(data)
+    }
+
     return _.reduce(propsMap, (accum, propDef, propName) => {
         if (_.get(propDef, 'single')) {
             return _.assign({}, accum,  {[propName]: _.find(data, propDef.predicate)});
@@ -109,8 +130,11 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
     const wsPort = _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT);
     const liveUpdate = isDev;
 
-    const reduceOptions = _.pick(options, ['pageTypes', 'propsMap']);
+    const reduceOptions = _.pick(options, ['commonProps', 'pages']);
     const transformedData = reduceAndTransformData(data.objects, reduceOptions);
+
+    console.log('---> 1', JSON.stringify(transformedData.pages, null, 2))
+    
     if (liveUpdate) {
         _.set(transformedData, 'props.liveUpdate', liveUpdate);
         _.set(transformedData, 'props.liveUpdateWsPort', wsPort);
@@ -162,9 +186,12 @@ class SourcebitDataClient {
             };
             checkPathExists();
         });
-        return cacheFileExists.then(() => {
-            return fse.readJson(DEFAULT_FILE_CACHE_PATH);
-        });
+
+        await cacheFileExists;
+
+        console.log('>>> readJson');
+
+        return fse.readJson(DEFAULT_FILE_CACHE_PATH);
     }
 
     async getStaticPaths() {
@@ -175,19 +202,26 @@ class SourcebitDataClient {
 
     async getStaticPropsForPageAtPath(pagePath) {
         console.log('SourcebitDataClient.getStaticPropsForPath');
-        const data = await this.getData();
-        return this.getPropsFromCMSDataForPagePath(data, pagePath);
+        try {
+            const data = await this.getData();
+            return this.getPropsFromCMSDataForPagePath(data, pagePath);
+        } catch (e) {
+            console.log('getStaticPropsForPageAtPath error:', e)
+        }
+        
     }
 
     getPropsFromCMSDataForPagePath(data, pagePath) {
+        console.log('SourcebitDataClient.getPropsFromCMSDataForPagePath', pagePath);
         const page = _.find(data.pages, {path: pagePath});
+
+        console.log('getPropsFromCMSDataForPagePath', _.assign(
+            page,
+            data.props
+        ))
         return _.assign(
-            {
-                path: page.path,
-                page: page.data
-            },
-            data.props,
-            page.props
+            page,
+            data.props
         );
     }
 }
