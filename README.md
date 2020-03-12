@@ -136,7 +136,7 @@ methods
 
 ## Sourcebit Configuration
 
-The plugin is configured with two options - `pageTypes` and `propsMap`:
+The plugin is configured with two options - `pages` and `commonProps`:
 
 `sourcebit.js`:
 ```js
@@ -146,15 +146,15 @@ module.exports = {
         {
             module: require('sourcebit-target-next'),
             options: {
-                // Define which source objects represent pages and what are their paths.
-                // These objects will be provided to getStaticProps by path.
-                pageTypes: [
+                // Define which source objects represent pages 
+                // and under which paths they should be available.
+                pages: [
                     { path: '/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'page') },
                     { path: '/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'special_page') },
                     { path: '/blog/{slug}', predicate: _.matchesProperty('__metadata.modelName', 'post') }
                 ],
-                // Define props that will be provided to all pages
-                propsMap: {
+                // Define common props that will be provided to all pages
+                commonProps: {
                     config: { single: true, predicate: _.matchesProperty('__metadata.modelName', 'site_config') },
                     posts: { predicate: _.matchesProperty('__metadata.modelName', 'post') }
                 }
@@ -165,7 +165,7 @@ module.exports = {
 
 ```
 
-1. `pageTypes` (array) An array of objects mapping entries fetched by one of the
+1. `pages` (array) An array of objects mapping entries fetched by one of the
    source plugins to props that will be provided to a **specific page identified
    by its path** via `getStaticProps`.
    
@@ -205,7 +205,7 @@ module.exports = {
    }
    ```  
     
-2. `propsMap` (object) An object mapping entries fetched by one of the source
+2. `commonProps` (object) An object mapping entries fetched by one of the source
    plugins to props that will be provided to **all page components** via
    `getStaticProps`.
    

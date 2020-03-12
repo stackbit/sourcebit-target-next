@@ -74,7 +74,7 @@ function reducePages(pages, data) {
             return _.concat(accum, {
                 path: urlPath,
                 page: page,
-                ...reducePropsMap(pageTypeDef.propsMap, data)
+                ...reducePropsMap(pageTypeDef.props, data)
             });
         }, accum)
     }, []);
@@ -132,7 +132,7 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
 
     const reduceOptions = _.pick(options, ['commonProps', 'pages']);
     const transformedData = reduceAndTransformData(data.objects, reduceOptions);
-    
+
     if (liveUpdate) {
         _.set(transformedData, 'props.liveUpdate', liveUpdate);
         _.set(transformedData, 'props.liveUpdateWsPort', wsPort);
