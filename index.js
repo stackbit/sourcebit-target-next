@@ -4,6 +4,7 @@ const util = require('util');
 const WebSocket = require('ws');
 const { EventEmitter } = require('events');
 const _ = require('lodash');
+const { getSetupForPage, getSetupForProp } = require('./lib/setup');
 
 const pkg = require('./package.json');
 
@@ -109,6 +110,119 @@ function interpolatePagePath(pathTemplate, page) {
 
     return urlPath;
 }
+
+module.exports.getOptionsFromSetup = ({ answers, debug }) => {
+    const options = {};
+    const pageBranches = answers.pages.map(page => {
+        if (!page.__model) return null;
+
+        const conditions = [
+            page.__model.modelName && `(object.__metadata.modelName === '${page.__model.modelName}')`,
+            page.__model.source && `(object.__metadata.source === '${page.__model.source}')`
+        ].filter(Boolean).join(' && ');
+
+        return `if (${conditions}) {
+    return pages.concat({ path: '${page.pagePath}', page: object });
+  }`
+    })
+    const functionBody = `return objects.reduce((pages, object) => {
+  ${pageBranches.join('\n')}
+
+  return pages;
+}, [])`;
+
+    debug(functionBody);
+
+    options.pages = new Function("objects", functionBody);
+
+    const commonProps = answers.commonProps.reduce((commonProps, propObject) => {
+        if (!propObject.__model) return commonProps;
+
+        if (propObject.isMultiple) {
+            return commonProps.concat(`${propObject.__model.modelName}: objects.reduce((acc, object) => object.__metadata.modelName === '${propObject.__model.modelName}' ? acc.concat(object) : acc, [])`)
+        }
+
+        return commonProps.concat(`${propObject.__model.modelName}: objects.find(object => object.__metadata.modelName === '${propObject.__model.modelName}')`)
+    }, []);
+
+    if (commonProps.length > 0) {
+        const functionBody = `return {
+  ${commonProps.join(',\n  ')}
+}`
+
+        options.commonProps = new Function("objects", functionBody);
+    }
+
+    return options;    
+}
+
+module.exports.getSetup = ({ chalk, data, inquirer }) => {
+  return async () => {
+    const { pageModels: pageModelIndexes } = await inquirer.prompt([
+      {
+        type: "checkbox",
+        name: "pageModels",
+        message: "Which of these models should generate a page?",
+        choices: data.models.map((model, index) => ({
+            name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
+            short: model.modelLabel || model.modelName,
+            value: index
+        }))
+      }
+    ]);
+    const pageModels = pageModelIndexes.map(index => data.models[index])
+
+    let queue = Promise.resolve({ commonProps: [], pages: [] });
+
+    pageModels.forEach((model, index) => {
+        queue = queue.then(async setupData => {
+            console.log(
+                `\nConfiguring page: ${chalk.bold(
+                    model.modelLabel || model.modelName
+                )} ${chalk.reset.italic.green(
+                    `(${index + 1} of ${pageModels.length}`
+                )})`
+            );
+  
+            return getSetupForPage({ chalk, data, inquirer, model, setupData });
+        });
+    });
+
+    await queue;
+
+    const { propModels: propModelIndexes } = await inquirer.prompt([
+        {
+            type: "checkbox",
+            name: "propModels",
+            message: "Which of these models do you want to include as props to all page components?",
+            choices: data.models.map((model, index) => ({
+                name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
+                short: model.modelLabel || model.modelName,
+                value: index
+            }))
+        }
+    ]);
+    const propModels = propModelIndexes.map(index => data.models[index]);
+
+    propModels.forEach((model, index) => {
+        queue = queue.then(async setupData => {
+            console.log(
+                `\nConfiguring common prop: ${chalk.bold(
+                    model.modelLabel || model.modelName
+                )} ${chalk.reset.italic.green(
+                    `(${index + 1} of ${propModels.length}`
+                )})`
+            );
+  
+            return getSetupForProp({ chalk, data, inquirer, model, setupData });
+        });
+    });
+
+    const answers = await queue;
+
+    return answers;
+  };
+};
 
 module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refresh, setPluginContext }) => {
 
