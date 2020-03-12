@@ -132,8 +132,6 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
 
     const reduceOptions = _.pick(options, ['commonProps', 'pages']);
     const transformedData = reduceAndTransformData(data.objects, reduceOptions);
-
-    console.log('---> 1', JSON.stringify(transformedData.pages, null, 2))
     
     if (liveUpdate) {
         _.set(transformedData, 'props.liveUpdate', liveUpdate);
@@ -189,8 +187,6 @@ class SourcebitDataClient {
 
         await cacheFileExists;
 
-        console.log('>>> readJson');
-
         return fse.readJson(DEFAULT_FILE_CACHE_PATH);
     }
 
@@ -202,23 +198,12 @@ class SourcebitDataClient {
 
     async getStaticPropsForPageAtPath(pagePath) {
         console.log('SourcebitDataClient.getStaticPropsForPath');
-        try {
-            const data = await this.getData();
-            return this.getPropsFromCMSDataForPagePath(data, pagePath);
-        } catch (e) {
-            console.log('getStaticPropsForPageAtPath error:', e)
-        }
-        
+        const data = await this.getData();
+        return this.getPropsFromCMSDataForPagePath(data, pagePath);
     }
 
     getPropsFromCMSDataForPagePath(data, pagePath) {
-        console.log('SourcebitDataClient.getPropsFromCMSDataForPagePath', pagePath);
         const page = _.find(data.pages, {path: pagePath});
-
-        console.log('getPropsFromCMSDataForPagePath', _.assign(
-            page,
-            data.props
-        ))
         return _.assign(
             page,
             data.props
