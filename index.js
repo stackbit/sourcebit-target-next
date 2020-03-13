@@ -1,3 +1,4 @@
+const ora = require('ora');
 const path = require('path');
 const fse = require('fs-extra');
 const util = require('util');
@@ -121,12 +122,12 @@ module.exports.getOptionsFromSetup = ({ answers, debug }) => {
             page.__model.source && `(object.__metadata.source === '${page.__model.source}')`
         ].filter(Boolean).join(' && ');
 
-        return `if (${conditions}) {
+        return `  if (${conditions}) {
     return pages.concat({ path: '${page.pagePath}', page: object });
   }`
     })
     const functionBody = `return objects.reduce((pages, object) => {
-  ${pageBranches.join('\n')}
+${pageBranches.join('\n\n')}
 
   return pages;
 }, [])`;
@@ -139,10 +140,10 @@ module.exports.getOptionsFromSetup = ({ answers, debug }) => {
         if (!propObject.__model) return commonProps;
 
         if (propObject.isMultiple) {
-            return commonProps.concat(`${propObject.__model.modelName}: objects.reduce((acc, object) => object.__metadata.modelName === '${propObject.__model.modelName}' ? acc.concat(object) : acc, [])`)
+            return commonProps.concat(`${propObject.propName}: objects.reduce((acc, object) => object.__metadata.modelName === '${propObject.__model.modelName}' ? acc.concat(object) : acc, [])`)
         }
 
-        return commonProps.concat(`${propObject.__model.modelName}: objects.find(object => object.__metadata.modelName === '${propObject.__model.modelName}')`)
+        return commonProps.concat(`${propObject.propName}: objects.find(object => object.__metadata.modelName === '${propObject.__model.modelName}')`)
     }, []);
 
     if (commonProps.length > 0) {
@@ -170,7 +171,7 @@ module.exports.getSetup = ({ chalk, data, inquirer }) => {
         }))
       }
     ]);
-    const pageModels = pageModelIndexes.map(index => data.models[index])
+    const pageModels = pageModelIndexes.map(index => data.models[index]);
 
     let queue = Promise.resolve({ commonProps: [], pages: [] });
 
@@ -189,6 +190,8 @@ module.exports.getSetup = ({ chalk, data, inquirer }) => {
     });
 
     await queue;
+
+    console.log('');
 
     const { propModels: propModelIndexes } = await inquirer.prompt([
         {
@@ -219,6 +222,9 @@ module.exports.getSetup = ({ chalk, data, inquirer }) => {
     });
 
     const answers = await queue;
+
+    console.log('');
+    ora(`The Next.js plugin requires some manual configuration. Please see ${chalk.bold('https://github.com/stackbithq/sourcebit-target-next#installation')} for instructions.`).warn();
 
     return answers;
   };
