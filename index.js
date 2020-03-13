@@ -1,4 +1,3 @@
-const ora = require('ora');
 const path = require('path');
 const fse = require('fs-extra');
 const util = require('util');
@@ -157,7 +156,7 @@ ${pageBranches.join('\n\n')}
     return options;    
 }
 
-module.exports.getSetup = ({ chalk, data, inquirer }) => {
+module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
   return async () => {
     // We want to exclude the internal `__asset` model from the options.
     const models = data.models.filter(model => model.modelName !== '__asset');
@@ -226,7 +225,10 @@ module.exports.getSetup = ({ chalk, data, inquirer }) => {
     const answers = await queue;
 
     console.log('');
-    ora(`The Next.js plugin requires some manual configuration. Please see ${chalk.bold('https://github.com/stackbithq/sourcebit-target-next#installation')} for instructions.`).warn();
+    log(
+        `The Next.js plugin requires some manual configuration. Please see ${chalk.bold('https://github.com/stackbithq/sourcebit-target-next#installation')} for instructions.`,
+        'fail'
+    );
 
     return answers;
   };
