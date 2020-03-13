@@ -159,19 +159,21 @@ ${pageBranches.join('\n\n')}
 
 module.exports.getSetup = ({ chalk, data, inquirer }) => {
   return async () => {
+    // We want to exclude the internal `__asset` model from the options.
+    const models = data.models.filter(model => model.modelName !== '__asset');
     const { pageModels: pageModelIndexes } = await inquirer.prompt([
       {
         type: "checkbox",
         name: "pageModels",
         message: "Which of these models should generate a page?",
-        choices: data.models.map((model, index) => ({
+        choices: models.map((model, index) => ({
             name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
             short: model.modelLabel || model.modelName,
             value: index
         }))
       }
     ]);
-    const pageModels = pageModelIndexes.map(index => data.models[index]);
+    const pageModels = pageModelIndexes.map(index => models[index]);
 
     let queue = Promise.resolve({ commonProps: [], pages: [] });
 
@@ -198,14 +200,14 @@ module.exports.getSetup = ({ chalk, data, inquirer }) => {
             type: "checkbox",
             name: "propModels",
             message: "Which of these models do you want to include as props to all page components?",
-            choices: data.models.map((model, index) => ({
+            choices: models.map((model, index) => ({
                 name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
                 short: model.modelLabel || model.modelName,
                 value: index
             }))
         }
     ]);
-    const propModels = propModelIndexes.map(index => data.models[index]);
+    const propModels = propModelIndexes.map(index => models[index]);
 
     propModels.forEach((model, index) => {
         queue = queue.then(async setupData => {
