@@ -9,7 +9,7 @@ const { getSetupForPage, getSetupForProp } = require('./lib/setup');
 const pkg = require('./package.json');
 
 
-module.exports.name = pkg;
+module.exports.name = pkg.name;
 
 const eventEmitter = new EventEmitter();
 const isDev = process.env.NODE_ENV === 'development';
@@ -20,7 +20,7 @@ const DEFAULT_LIVE_UPDATE_PORT = 8088;
 
 
 function startStaticPropsWatcher({ wsPort }) {
-    const wss = new WebSocket.Server({ port: wsPort });
+    const wss = new WebSocket.Server({ path: '/nextjs-live-updates', port: wsPort });
 
     wss.on('connection', (ws) => {
         console.log('[data-listener] websocket connected');
@@ -34,6 +34,8 @@ function startStaticPropsWatcher({ wsPort }) {
             console.log(`[data-listener] websocket send '${LIVE_UPDATE_EVENT_NAME}'`);
             ws.send(LIVE_UPDATE_EVENT_NAME);
         });
+        console.log('[data-listener] send "hello"');
+        ws.send('hello');
     });
 }
 
@@ -46,7 +48,7 @@ function reduceAndTransformData(data, { commonProps, pages }) {
 
 function reducePages(pages, data) {
     if (typeof pages === 'function') {
-        const pageObjects = pages(data)
+        const pageObjects = pages(data);
 
         return _.reduce(pageObjects, (accum, item) => {
             let urlPath;
@@ -238,7 +240,7 @@ module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refre
 
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
     const wsPort = _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT);
-    const liveUpdate = isDev;
+    const liveUpdate = _.get(options, 'liveUpdate', isDev);
 
     await fse.remove(cacheFilePath);
 
@@ -251,8 +253,10 @@ module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refre
 module.exports.transform = async ({ data, debug, getPluginContext, log, options }) => {
 
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
-    const wsPort = _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT);
-    const liveUpdate = isDev;
+    // allow configuring different ws port for client, useful if ws can be
+    // proxied through same webserver that serves nest.js app
+    const wsPort = _.get(options, 'liveUpdateWsClientPort', _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT));
+    const liveUpdate = _.get(options, 'liveUpdate', isDev);
 
     const reduceOptions = _.pick(options, ['commonProps', 'pages']);
     const transformedData = reduceAndTransformData(data.objects, reduceOptions);
@@ -280,7 +284,7 @@ class SourcebitDataClient {
         // modules causing this singleton to be reconstructed loosing any in
         // memory cache.
         // https://github.com/zeit/next.js/issues/10933
-        console.log('SourcebitDataClient.constructor');
+        // console.log('SourcebitDataClient.constructor');
     }
 
     async getData() {

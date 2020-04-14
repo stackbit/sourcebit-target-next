@@ -242,7 +242,10 @@ module.exports = {
        config: { ... },
        posts: [ ... ]
    }
-   ```  
+   ```
+
+3. `liveUpdate` (boolean) A flag indicating if page should reload its data when remote
+   data changed. Defaults to true when `NODE_ENV` is set to `development`.
 
 You can check out an [example project](https://github.com/stackbithq/azimuth-nextjs-sanity)
 that uses `sourcebit-source-sanity` and `sourcebit-target-next` plugins to fetch
