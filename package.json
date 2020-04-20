@@ -4,6 +4,7 @@
   "description": "A Sourcebit target plugin for Next.js",
   "main": "index.js",
   "scripts": {
+    "version-patch": "npm version patch -m \"bumped version to v%s\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

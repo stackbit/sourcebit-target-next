@@ -13,7 +13,8 @@ module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedCom
             // console.log('withSSGPage componentDidMount', this.props);
             const wsPort = this.props.liveUpdateWsPort;
             const eventName = this.props.liveUpdateEventName;
-            this.ws = new WebSocket('ws://' + location.hostname + ':' + wsPort + '/nextjs-live-updates');
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            this.ws = new WebSocket(protocol + '//' + location.hostname + ':' + wsPort + '/nextjs-live-updates');
             this.ws.addEventListener('open', (event) => {
                 // console.log('initial-props websocket opened');
             });
