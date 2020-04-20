@@ -11,10 +11,11 @@ module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedCom
                 return;
             }
             // console.log('withSSGPage componentDidMount', this.props);
-            const wsPort = this.props.liveUpdateWsPort;
+            const wsPort = this.props.liveUpdateWsPort || location.port;
+            const port = wsPort ? ':' + wsPort : '';
             const eventName = this.props.liveUpdateEventName;
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            this.ws = new WebSocket(protocol + '//' + location.hostname + ':' + wsPort + '/nextjs-live-updates');
+            this.ws = new WebSocket(protocol + '//' + location.hostname + port + '/nextjs-live-updates');
             this.ws.addEventListener('open', (event) => {
                 // console.log('initial-props websocket opened');
             });
