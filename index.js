@@ -1,5 +1,6 @@
 const path = require('path');
 const fse = require('fs-extra');
+const slugify = require("@sindresorhus/slugify");
 const util = require('util');
 const WebSocket = require('ws');
 const { EventEmitter } = require('events');
@@ -48,7 +49,7 @@ function reduceAndTransformData(data, { commonProps, pages }) {
 
 function reducePages(pages, data) {
     if (typeof pages === 'function') {
-        const pageObjects = pages(data);
+        const pageObjects = pages(data, {slugify});
 
         return _.reduce(pageObjects, (accum, item) => {
             let urlPath;
@@ -85,7 +86,7 @@ function reducePages(pages, data) {
 
 function reducePropsMap(propsMap, data) {
     if (typeof propsMap === 'function') {
-        return propsMap(data)
+        return propsMap(data, {slugify})
     }
 
     return _.reduce(propsMap, (accum, propDef, propName) => {
@@ -122,9 +123,10 @@ module.exports.getOptionsFromSetup = ({ answers, debug }) => {
             page.__model.modelName && `(object.__metadata.modelName === '${page.__model.modelName}')`,
             page.__model.source && `(object.__metadata.source === '${page.__model.source}')`
         ].filter(Boolean).join(' && ');
+        const pageValue = page.slugField ? `{...object, slug: utils.slugify(object['${page.slugField}'])}` : 'object'
 
         return `  if (${conditions}) {
-    return pages.concat({ path: '${page.pagePath}', page: object });
+    return pages.concat({ path: '${page.pagePath}', page: ${pageValue} });
   }`
     })
     const functionBody = `return objects.reduce((pages, object) => {
@@ -135,7 +137,7 @@ ${pageBranches.join('\n\n')}
 
     debug(functionBody);
 
-    options.pages = new Function("objects", functionBody);
+    options.pages = new Function("objects", "utils", functionBody);
 
     const commonProps = answers.commonProps.reduce((commonProps, propObject) => {
         if (!propObject.__model) return commonProps;
@@ -152,7 +154,7 @@ ${pageBranches.join('\n\n')}
   ${commonProps.join(',\n  ')}
 }`
 
-        options.commonProps = new Function("objects", functionBody);
+        options.commonProps = new Function("objects", "utils", functionBody);
     }
 
     return options;    
