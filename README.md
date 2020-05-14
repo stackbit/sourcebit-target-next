@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/sourcebit-target-next.svg)](https://badge.fury.io/js/sourcebit-target-next)
 
-A Sourcebit target plugin for the [Next.js](https://nextjs.org/) framework.
+> A [Sourcebit](https://github.com/stackbithq/sourcebit) target plugin for the [Next.js](https://nextjs.org/) framework.
 
 ## Overview
 
