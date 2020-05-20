@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/stackbithq/sourcebit-target-next#readme",
   "dependencies": {
+    "@sindresorhus/slugify": "^1.0.0",
     "fs-extra": "^8.1.0",
     "lodash": "^4.17.15",
     "ws": "^7.2.3"
