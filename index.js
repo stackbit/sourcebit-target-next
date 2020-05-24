@@ -2,7 +2,7 @@ const path = require('path');
 const fse = require('fs-extra');
 const slugify = require("@sindresorhus/slugify");
 const util = require('util');
-const WebSocket = require('ws');
+const socketIO = require('socket.io');
 const { EventEmitter } = require('events');
 const _ = require('lodash');
 const { getSetupForPage, getSetupForProp } = require('./lib/setup');
@@ -20,23 +20,25 @@ const DEFAULT_FILE_CACHE_PATH = path.join(process.cwd(), '.sourcebit-nextjs-cach
 const DEFAULT_LIVE_UPDATE_PORT = 8088;
 
 
-function startStaticPropsWatcher({ wsPort }) {
-    const wss = new WebSocket.Server({ path: '/nextjs-live-updates', port: wsPort });
+function startStaticPropsWatcher({ port }) {
+    console.log(`[data-listener] create socket.io on port ${port} with namespace '/nextjs-live-updates'`);
+    const io = socketIO(port);
+    const liveUpdatesIO = io.of('/nextjs-live-updates');
+    liveUpdatesIO.on('connection', (socket) => {
+        socket.on('disconnect', () => {
+            console.log(`[data-listener] socket.io disconnected, socket.id: '${socket.id}'`);
+        });
 
-    wss.on('connection', (ws) => {
-        console.log('[data-listener] websocket connected');
-        ws.on('message', (message) => {
-            console.log('[data-listener] websocket received message:', message);
+        socket.on('hello', () => {
+            console.log(`[data-listener] socket.io received 'hello', send 'hello' back, socket.id: '${socket.id}'`);
+            socket.emit('hello');
         });
-        ws.on('close', () => {
-            console.log('[data-listener] websocket disconnected');
-        });
-        eventEmitter.on(LIVE_UPDATE_EVENT_NAME, () => {
-            console.log(`[data-listener] websocket send '${LIVE_UPDATE_EVENT_NAME}'`);
-            ws.send(LIVE_UPDATE_EVENT_NAME);
-        });
-        console.log('[data-listener] send "hello"');
-        ws.send('hello');
+
+        console.log(`[data-listener] socket.io connected, socket.id: '${socket.id}'`);
+    });
+    eventEmitter.on(LIVE_UPDATE_EVENT_NAME, () => {
+        console.log(`[data-listener] got live update, socket.io send '${LIVE_UPDATE_EVENT_NAME}'`);
+        liveUpdatesIO.emit(LIVE_UPDATE_EVENT_NAME);
     });
 }
 
@@ -157,7 +159,7 @@ ${pageBranches.join('\n\n')}
         options.commonProps = new Function("objects", "utils", functionBody);
     }
 
-    return options;    
+    return options;
 }
 
 module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
@@ -189,7 +191,7 @@ module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
                     `(${index + 1} of ${pageModels.length}`
                 )})`
             );
-  
+
             return getSetupForPage({ chalk, data, inquirer, model, setupData });
         });
     });
@@ -221,7 +223,7 @@ module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
                     `(${index + 1} of ${propModels.length}`
                 )})`
             );
-  
+
             return getSetupForProp({ chalk, data, inquirer, model, setupData });
         });
     });
@@ -241,13 +243,13 @@ module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
 module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refresh, setPluginContext }) => {
 
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
-    const wsPort = _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT);
+    const liveUpdatePort = _.get(options, 'liveUpdatePort', DEFAULT_LIVE_UPDATE_PORT);
     const liveUpdate = _.get(options, 'liveUpdate', isDev);
 
     await fse.remove(cacheFilePath);
 
     if (liveUpdate) {
-        startStaticPropsWatcher({ wsPort: wsPort });
+        startStaticPropsWatcher({ port: liveUpdatePort });
     }
 
 };
@@ -255,9 +257,9 @@ module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refre
 module.exports.transform = async ({ data, debug, getPluginContext, log, options }) => {
 
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
-    // allow configuring different ws port for client, useful if ws can be
+    // allow configuring different socket.io port for client, useful if the socket can be
     // proxied through same webserver that serves nest.js app
-    const wsPort = _.get(options, 'liveUpdateWsClientPort', _.get(options, 'liveUpdateWsPort', DEFAULT_LIVE_UPDATE_PORT));
+    const liveUpdatePort = _.get(options, 'liveUpdateClientPort', _.get(options, 'liveUpdatePort', DEFAULT_LIVE_UPDATE_PORT));
     const liveUpdate = _.get(options, 'liveUpdate', isDev);
 
     const reduceOptions = _.pick(options, ['commonProps', 'pages']);
@@ -265,7 +267,7 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
 
     if (liveUpdate) {
         _.set(transformedData, 'props.liveUpdate', liveUpdate);
-        _.set(transformedData, 'props.liveUpdateWsPort', wsPort);
+        _.set(transformedData, 'props.liveUpdatePort', liveUpdatePort);
         _.set(transformedData, 'props.liveUpdateEventName', LIVE_UPDATE_EVENT_NAME);
     }
 
