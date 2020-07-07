@@ -42,11 +42,44 @@ function startStaticPropsWatcher({ port }) {
     });
 }
 
-function reduceAndTransformData(data, { commonProps, pages }) {
+function reduceAndTransformData(data, { commonProps, pages, flattenAssetUrls }) {
+    if (flattenAssetUrls) {
+        data = mapDeep(data, (value, keyPath) => {
+            // first level objects can be asset objects themselves, don't override them
+            if (keyPath.length > 1 && _.get(value, '__metadata.modelName') === '__asset' && _.has(value, 'url')) {
+                return value.url;
+            }
+            return value;
+        });
+    }
     return {
         props: reducePropsMap(commonProps, data),
         pages: reducePages(pages, data)
     };
+}
+
+function mapDeep(value, iteratee, options, _keyPath, _objectStack) {
+    let iterate;
+    if (_.isPlainObject(value) || _.isArray(value)) {
+        iterate = _.get(options, 'iterateCollections', true);
+    } else {
+        iterate = _.get(options, 'iterateScalars', true);
+    }
+    _keyPath = _keyPath || [];
+    _objectStack = _objectStack || [];
+    if (iterate) {
+        value = iteratee(value, _keyPath, _objectStack);
+    }
+    if (_.isPlainObject(value)) {
+        value = _.mapValues(value, (val, key) => {
+            return mapDeep(val, iteratee, options, _.concat(_keyPath, key), _.concat(_objectStack, value));
+        });
+    } else if (_.isArray(value)) {
+        value = _.map(value, (val, key) => {
+            return mapDeep(val, iteratee, options, _.concat(_keyPath, key), _.concat(_objectStack, value));
+        });
+    }
+    return value;
 }
 
 function reducePages(pages, data) {
@@ -108,6 +141,8 @@ function interpolatePagePath(pathTemplate, page) {
         }
         return _.trim(fieldValue, '/');
     });
+
+    urlPath = _.trimEnd(urlPath, '/');
 
     if (!_.startsWith(urlPath, '/')) {
         urlPath = '/' + urlPath;
@@ -262,7 +297,7 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
     const liveUpdatePort = _.get(options, 'liveUpdateClientPort', _.get(options, 'liveUpdatePort', DEFAULT_LIVE_UPDATE_PORT));
     const liveUpdate = _.get(options, 'liveUpdate', isDev);
 
-    const reduceOptions = _.pick(options, ['commonProps', 'pages']);
+    const reduceOptions = _.pick(options, ['commonProps', 'pages', 'flattenAssetUrls']);
     const transformedData = reduceAndTransformData(data.objects, reduceOptions);
 
     if (liveUpdate) {
@@ -335,6 +370,13 @@ class SourcebitDataClient {
     }
 
     getPropsFromCMSDataForPagePath(data, pagePath) {
+        if (_.isArray(pagePath)) {
+            pagePath = pagePath.join('/')
+        }
+        pagePath = _.trimEnd(pagePath, '/');
+        if (!_.startsWith(pagePath, '/')) {
+            pagePath = '/' + pagePath;
+        }
         const page = _.find(data.pages, {path: pagePath});
         return _.assign(
             page,
