@@ -1,6 +1,6 @@
 const path = require('path');
 const fse = require('fs-extra');
-const slugify = require("@sindresorhus/slugify");
+const slugify = require('@sindresorhus/slugify');
 const util = require('util');
 const socketIO = require('socket.io');
 const { EventEmitter } = require('events');
@@ -84,7 +84,7 @@ function mapDeep(value, iteratee, options, _keyPath, _objectStack) {
 
 function reducePages(pages, data) {
     if (typeof pages === 'function') {
-        const pageObjects = pages(data, {slugify});
+        const pageObjects = pages(data, { slugify });
 
         return _.reduce(pageObjects, (accum, item) => {
             let urlPath;
@@ -94,10 +94,8 @@ function reducePages(pages, data) {
                 return accum;
             }
 
-            return _.concat(accum, _.assign(
-                item, { path: urlPath }
-            ));
-        }, [])
+            return _.concat(accum, _.assign(item, { path: urlPath }));
+        }, []);
     }
 
     return _.reduce(pages, (accum, pageTypeDef) => {
@@ -115,29 +113,33 @@ function reducePages(pages, data) {
                 page: page,
                 ...reducePropsMap(pageTypeDef.props, data)
             });
-        }, accum)
+        }, accum);
     }, []);
 }
 
 function reducePropsMap(propsMap, data) {
     if (typeof propsMap === 'function') {
-        return propsMap(data, {slugify})
+        return propsMap(data, { slugify });
     }
 
-    return _.reduce(propsMap, (accum, propDef, propName) => {
-        if (_.get(propDef, 'single')) {
-            return _.assign({}, accum,  {[propName]: _.find(data, propDef.predicate)});
-        } else {
-            return _.assign({}, accum,  {[propName]: _.filter(data, propDef.predicate)});
-        }
-    }, {});
+    return _.reduce(
+        propsMap,
+        (accum, propDef, propName) => {
+            if (_.get(propDef, 'single')) {
+                return _.assign({}, accum, { [propName]: _.find(data, propDef.predicate) });
+            } else {
+                return _.assign({}, accum, { [propName]: _.filter(data, propDef.predicate) });
+            }
+        },
+        {}
+    );
 }
 
 function interpolatePagePath(pathTemplate, page) {
     let urlPath = pathTemplate.replace(/{([\s\S]+?)}/g, (match, p1) => {
         const fieldValue = _.get(page, p1);
         if (!fieldValue) {
-            throw new Error(`page has no value in field '${p1}', page: ${util.inspect(page, {depth: 0})}`);
+            throw new Error(`page has no value in field '${p1}', page: ${util.inspect(page, { depth: 0 })}`);
         }
         return _.trim(fieldValue, '/');
     });
@@ -153,7 +155,7 @@ function interpolatePagePath(pathTemplate, page) {
 
 module.exports.getOptionsFromSetup = ({ answers, debug }) => {
     const options = {};
-    const pageBranches = answers.pages.map(page => {
+    const pageBranches = answers.pages.map((page) => {
         if (!page.__model) return null;
 
         const conditions = [
@@ -164,8 +166,8 @@ module.exports.getOptionsFromSetup = ({ answers, debug }) => {
 
         return `  if (${conditions}) {
     return pages.concat({ path: '${page.pagePath}', page: ${pageValue} });
-  }`
-    })
+  }`;
+    });
     const functionBody = `return objects.reduce((pages, object) => {
 ${pageBranches.join('\n\n')}
 
@@ -174,7 +176,7 @@ ${pageBranches.join('\n\n')}
 
     debug(functionBody);
 
-    options.pages = new Function("objects", "utils", functionBody);
+    options.pages = new Function('objects', 'utils', functionBody);
 
     const commonProps = answers.commonProps.reduce((commonProps, propObject) => {
         if (!propObject.__model) return commonProps;
@@ -189,94 +191,91 @@ ${pageBranches.join('\n\n')}
     if (commonProps.length > 0) {
         const functionBody = `return {
   ${commonProps.join(',\n  ')}
-}`
+}`;
 
-        options.commonProps = new Function("objects", "utils", functionBody);
+        options.commonProps = new Function('objects', 'utils', functionBody);
     }
 
     return options;
-}
+};
 
 module.exports.getSetup = ({ chalk, data, inquirer, log }) => {
-  return async () => {
-    // We want to exclude the internal `__asset` model from the options.
-    const models = data.models.filter(model => model.modelName !== '__asset');
-    const { pageModels: pageModelIndexes } = await inquirer.prompt([
-      {
-        type: "checkbox",
-        name: "pageModels",
-        message: "Which of these models should generate a page?",
-        choices: models.map((model, index) => ({
-            name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
-            short: model.modelLabel || model.modelName,
-            value: index
-        }))
-      }
-    ]);
-    const pageModels = pageModelIndexes.map(index => models[index]);
+    return async () => {
+        // We want to exclude the internal `__asset` model from the options.
+        const models = data.models.filter((model) => model.modelName !== '__asset');
+        const { pageModels: pageModelIndexes } = await inquirer.prompt([
+            {
+                type: 'checkbox',
+                name: 'pageModels',
+                message: 'Which of these models should generate a page?',
+                choices: models.map((model, index) => ({
+                    name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
+                    short: model.modelLabel || model.modelName,
+                    value: index
+                }))
+            }
+        ]);
+        const pageModels = pageModelIndexes.map((index) => models[index]);
 
-    let queue = Promise.resolve({ commonProps: [], pages: [] });
+        let queue = Promise.resolve({ commonProps: [], pages: [] });
 
-    pageModels.forEach((model, index) => {
-        queue = queue.then(async setupData => {
-            console.log(
-                `\nConfiguring page: ${chalk.bold(
-                    model.modelLabel || model.modelName
-                )} ${chalk.reset.italic.green(
-                    `(${index + 1} of ${pageModels.length}`
-                )})`
-            );
+        pageModels.forEach((model, index) => {
+            queue = queue.then(async (setupData) => {
+                console.log(
+                    `\nConfiguring page: ${chalk.bold(model.modelLabel || model.modelName)} ${chalk.reset.italic.green(
+                        `(${index + 1} of ${pageModels.length}`
+                    )})`
+                );
 
-            return getSetupForPage({ chalk, data, inquirer, model, setupData });
+                return getSetupForPage({ chalk, data, inquirer, model, setupData });
+            });
         });
-    });
 
-    await queue;
+        await queue;
 
-    console.log('');
+        console.log('');
 
-    const { propModels: propModelIndexes } = await inquirer.prompt([
-        {
-            type: "checkbox",
-            name: "propModels",
-            message: "Which of these models do you want to include as props to all page components?",
-            choices: models.map((model, index) => ({
-                name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
-                short: model.modelLabel || model.modelName,
-                value: index
-            }))
-        }
-    ]);
-    const propModels = propModelIndexes.map(index => models[index]);
+        const { propModels: propModelIndexes } = await inquirer.prompt([
+            {
+                type: 'checkbox',
+                name: 'propModels',
+                message: 'Which of these models do you want to include as props to all page components?',
+                choices: models.map((model, index) => ({
+                    name: `${model.modelLabel || model.modelName} ${chalk.dim(`(${model.source})`)}`,
+                    short: model.modelLabel || model.modelName,
+                    value: index
+                }))
+            }
+        ]);
+        const propModels = propModelIndexes.map((index) => models[index]);
 
-    propModels.forEach((model, index) => {
-        queue = queue.then(async setupData => {
-            console.log(
-                `\nConfiguring common prop: ${chalk.bold(
-                    model.modelLabel || model.modelName
-                )} ${chalk.reset.italic.green(
-                    `(${index + 1} of ${propModels.length}`
-                )})`
-            );
+        propModels.forEach((model, index) => {
+            queue = queue.then(async (setupData) => {
+                console.log(
+                    `\nConfiguring common prop: ${chalk.bold(model.modelLabel || model.modelName)} ${chalk.reset.italic.green(
+                        `(${index + 1} of ${propModels.length}`
+                    )})`
+                );
 
-            return getSetupForProp({ chalk, data, inquirer, model, setupData });
+                return getSetupForProp({ chalk, data, inquirer, model, setupData });
+            });
         });
-    });
 
-    const answers = await queue;
+        const answers = await queue;
 
-    console.log('');
-    log(
-        `The Next.js plugin requires some manual configuration. Please see ${chalk.bold('https://github.com/stackbithq/sourcebit-target-next#installation')} for instructions.`,
-        'fail'
-    );
+        console.log('');
+        log(
+            `The Next.js plugin requires some manual configuration. Please see ${chalk.bold(
+                'https://github.com/stackbithq/sourcebit-target-next#installation'
+            )} for instructions.`,
+            'fail'
+        );
 
-    return answers;
-  };
+        return answers;
+    };
 };
 
 module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refresh, setPluginContext }) => {
-
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
     const liveUpdatePort = _.get(options, 'liveUpdatePort', DEFAULT_LIVE_UPDATE_PORT);
     const liveUpdate = _.get(options, 'liveUpdate', isDev);
@@ -286,11 +285,9 @@ module.exports.bootstrap = async ({ debug, getPluginContext, log, options, refre
     if (liveUpdate) {
         startStaticPropsWatcher({ port: liveUpdatePort });
     }
-
 };
 
 module.exports.transform = async ({ data, debug, getPluginContext, log, options }) => {
-
     const cacheFilePath = _.get(options, 'cacheFilePath', DEFAULT_FILE_CACHE_PATH);
     // allow configuring different socket.io port for client, useful if the socket can be
     // proxied through same webserver that serves nest.js app
@@ -377,7 +374,7 @@ class SourcebitDataClient {
         if (!_.startsWith(pagePath, '/')) {
             pagePath = '/' + pagePath;
         }
-        const page = _.find(data.pages, {path: pagePath});
+        const page = _.find(data.pages, { path: pagePath });
         return _.assign(
             page,
             data.props

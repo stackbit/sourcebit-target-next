@@ -2,11 +2,8 @@ const React = require('react');
 const { withRouter } = require('next/router');
 const io = require('socket.io-client');
 
-
 module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedComponent) {
-
     class Component extends React.Component {
-
         componentDidMount() {
             if (!this.props.liveUpdate) {
                 return;
