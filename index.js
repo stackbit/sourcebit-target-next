@@ -9,7 +9,6 @@ const { getSetupForPage, getSetupForProp } = require('./lib/setup');
 
 const pkg = require('./package.json');
 
-
 module.exports.name = pkg.name;
 
 const eventEmitter = new EventEmitter();
@@ -18,7 +17,6 @@ const isDev = process.env.NODE_ENV === 'development';
 const LIVE_UPDATE_EVENT_NAME = 'props_changed';
 const DEFAULT_FILE_CACHE_PATH = path.join(process.cwd(), '.sourcebit-nextjs-cache.json');
 const DEFAULT_LIVE_UPDATE_PORT = 8088;
-
 
 function startStaticPropsWatcher({ port }) {
     console.log(`[data-listener] create socket.io on port ${port} with namespace '/nextjs-live-updates'`);
@@ -86,35 +84,47 @@ function reducePages(pages, data) {
     if (typeof pages === 'function') {
         const pageObjects = pages(data, { slugify });
 
-        return _.reduce(pageObjects, (accum, item) => {
-            let urlPath;
-            try {
-                urlPath = interpolatePagePath(item.path, item.page);
-            } catch (e) {
-                return accum;
-            }
+        return _.reduce(
+            pageObjects,
+            (accum, item) => {
+                let urlPath;
+                try {
+                    urlPath = interpolatePagePath(item.path, item.page);
+                } catch (e) {
+                    return accum;
+                }
 
-            return _.concat(accum, _.assign(item, { path: urlPath }));
-        }, []);
+                return _.concat(accum, _.assign(item, { path: urlPath }));
+            },
+            []
+        );
     }
 
-    return _.reduce(pages, (accum, pageTypeDef) => {
-        const pages = _.filter(data, pageTypeDef.predicate);
-        const pathTemplate = pageTypeDef.path || '/{slug}';
-        return _.reduce(pages, (accum, page) => {
-            let urlPath;
-            try {
-                urlPath = interpolatePagePath(pathTemplate, page);
-            } catch (e) {
-                return accum;
-            }
-            return _.concat(accum, {
-                path: urlPath,
-                page: page,
-                ...reducePropsMap(pageTypeDef.props, data)
-            });
-        }, accum);
-    }, []);
+    return _.reduce(
+        pages,
+        (accum, pageTypeDef) => {
+            const pages = _.filter(data, pageTypeDef.predicate);
+            const pathTemplate = pageTypeDef.path || '/{slug}';
+            return _.reduce(
+                pages,
+                (accum, page) => {
+                    let urlPath;
+                    try {
+                        urlPath = interpolatePagePath(pathTemplate, page);
+                    } catch (e) {
+                        return accum;
+                    }
+                    return _.concat(accum, {
+                        path: urlPath,
+                        page: page,
+                        ...reducePropsMap(pageTypeDef.props, data)
+                    });
+                },
+                accum
+            );
+        },
+        []
+    );
 }
 
 function reducePropsMap(propsMap, data) {
@@ -161,8 +171,10 @@ module.exports.getOptionsFromSetup = ({ answers, debug }) => {
         const conditions = [
             page.__model.modelName && `(object.__metadata.modelName === '${page.__model.modelName}')`,
             page.__model.source && `(object.__metadata.source === '${page.__model.source}')`
-        ].filter(Boolean).join(' && ');
-        const pageValue = page.slugField ? `{...object, slug: utils.slugify(object['${page.slugField}'])}` : 'object'
+        ]
+            .filter(Boolean)
+            .join(' && ');
+        const pageValue = page.slugField ? `{...object, slug: utils.slugify(object['${page.slugField}'])}` : 'object';
 
         return `  if (${conditions}) {
     return pages.concat({ path: '${page.pagePath}', page: ${pageValue} });
@@ -182,10 +194,14 @@ ${pageBranches.join('\n\n')}
         if (!propObject.__model) return commonProps;
 
         if (propObject.isMultiple) {
-            return commonProps.concat(`${propObject.propName}: objects.reduce((acc, object) => object.__metadata.modelName === '${propObject.__model.modelName}' ? acc.concat(object) : acc, [])`)
+            return commonProps.concat(
+                `${propObject.propName}: objects.reduce((acc, object) => object.__metadata.modelName === '${propObject.__model.modelName}' ? acc.concat(object) : acc, [])`
+            );
         }
 
-        return commonProps.concat(`${propObject.propName}: objects.find(object => object.__metadata.modelName === '${propObject.__model.modelName}')`)
+        return commonProps.concat(
+            `${propObject.propName}: objects.find(object => object.__metadata.modelName === '${propObject.__model.modelName}')`
+        );
     }, []);
 
     if (commonProps.length > 0) {
@@ -314,7 +330,6 @@ module.exports.transform = async ({ data, debug, getPluginContext, log, options 
 };
 
 class SourcebitDataClient {
-
     constructor() {
         // Every time getStaticPaths is called, the page re-imports all required
         // modules causing this singleton to be reconstructed loosing any in
@@ -338,10 +353,16 @@ class SourcebitDataClient {
                 const pathExists = await fse.pathExists(DEFAULT_FILE_CACHE_PATH);
                 if (!pathExists && numOfRetries < maxNumOfRetries) {
                     numOfRetries += 1;
-                    console.log(`SourcebitDataClient.getData, cache file '${DEFAULT_FILE_CACHE_PATH}' not found, waiting ${retryDelay}ms and retry #${numOfRetries}`);
+                    console.log(
+                        `SourcebitDataClient.getData, cache file '${DEFAULT_FILE_CACHE_PATH}' not found, waiting ${retryDelay}ms and retry #${numOfRetries}`
+                    );
                     setTimeout(checkPathExists, retryDelay);
                 } else if (!pathExists) {
-                    reject(new Error(`SourcebitDataClient.getData, cache file '${DEFAULT_FILE_CACHE_PATH}' was not found after ${numOfRetries} retries`));
+                    reject(
+                        new Error(
+                            `SourcebitDataClient.getData, cache file '${DEFAULT_FILE_CACHE_PATH}' was not found after ${numOfRetries} retries`
+                        )
+                    );
                 } else {
                     resolve();
                 }
@@ -357,7 +378,11 @@ class SourcebitDataClient {
     async getStaticPaths() {
         console.log('SourcebitDataClient.getStaticPaths');
         const data = await this.getData();
-        return _.map(data.pages, (page) => page.path);
+        let paths = _.map(data.pages, (page) => page.path);
+        if (process.env.NODE_ENV === 'development') {
+            paths = paths.concat(_.map(paths, (pagePath) => pagePath + (pagePath !== '/' ? '/' : '')));
+        }
+        return paths;
     }
 
     async getStaticPropsForPageAtPath(pagePath) {
@@ -368,17 +393,14 @@ class SourcebitDataClient {
 
     getPropsFromCMSDataForPagePath(data, pagePath) {
         if (_.isArray(pagePath)) {
-            pagePath = pagePath.join('/')
+            pagePath = pagePath.join('/');
         }
         pagePath = _.trimEnd(pagePath, '/');
         if (!_.startsWith(pagePath, '/')) {
             pagePath = '/' + pagePath;
         }
         const page = _.find(data.pages, { path: pagePath });
-        return _.assign(
-            page,
-            data.props
-        );
+        return _.assign(page, data.props);
     }
 }
 
