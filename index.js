@@ -335,11 +335,9 @@ class SourcebitDataClient {
         // modules causing this singleton to be reconstructed loosing any in
         // memory cache.
         // https://github.com/zeit/next.js/issues/10933
-        // console.log('SourcebitDataClient.constructor');
     }
 
     async getData() {
-        console.log('SourcebitDataClient.getData');
         // For now, we are reading the changes from filesystem until re-import
         // of this module will be fixed: https://github.com/zeit/next.js/issues/10933
         // TODO: DEFAULT_FILE_CACHE_PATH won't work if default cache file path
@@ -376,7 +374,6 @@ class SourcebitDataClient {
     }
 
     async getStaticPaths() {
-        console.log('SourcebitDataClient.getStaticPaths');
         const data = await this.getData();
         let paths = _.map(data.pages, (page) => page.path);
         if (process.env.NODE_ENV === 'development') {
@@ -386,7 +383,6 @@ class SourcebitDataClient {
     }
 
     async getStaticPropsForPageAtPath(pagePath) {
-        console.log('SourcebitDataClient.getStaticPropsForPath');
         const data = await this.getData();
         return this.getPropsFromCMSDataForPagePath(data, pagePath);
     }
