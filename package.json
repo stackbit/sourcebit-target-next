@@ -1,6 +1,6 @@
 {
     "name": "sourcebit-target-next",
-    "version": "0.6.0-alpha.0",
+    "version": "0.6.0-alpha.1",
     "description": "A Sourcebit target plugin for Next.js",
     "main": "index.js",
     "scripts": {
