@@ -20,7 +20,11 @@ const DEFAULT_LIVE_UPDATE_PORT = 8088;
 
 function startStaticPropsWatcher({ port }) {
     console.log(`[data-listener] create socket.io on port ${port} with namespace '/nextjs-live-updates'`);
-    const io = socketIO(port);
+    const io = socketIO(port, {
+        cors: {
+            origin: true
+        }
+    });
     const liveUpdatesIO = io.of('/nextjs-live-updates');
     liveUpdatesIO.on('connection', (socket) => {
         socket.on('disconnect', () => {
