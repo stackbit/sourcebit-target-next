@@ -15,7 +15,9 @@ module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedCom
 
             this.socket = io(`${location.protocol}//${location.hostname + port}/nextjs-live-updates`);
             this.socket.on(eventName, () => {
-                this.props.router.replace(this.props.router.pathname, this.props.router.asPath);
+                this.props.router.replace(this.props.router.pathname, this.props.router.asPath, {
+                    scroll: false
+                });
             });
             this.socket.on('connect', () => {
                 this.socket.emit('hello');
