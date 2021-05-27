@@ -21,6 +21,7 @@ const DEFAULT_LIVE_UPDATE_PORT = 8088;
 function startStaticPropsWatcher({ port }) {
     console.log(`[data-listener] create socket.io on port ${port} with namespace '/nextjs-live-updates'`);
     const io = socketIO(port, {
+        allowEIO3: true,
         cors: {
             origin: true
         }
