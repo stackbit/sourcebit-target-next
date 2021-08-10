@@ -378,12 +378,15 @@ class SourcebitDataClient {
         return fse.readJson(DEFAULT_FILE_CACHE_PATH);
     }
 
+    async getStaticPages() {
+      const data = await this.getData();
+      let paths = _.map(data.pages, (page) => page);
+      return paths;
+  }
+
     async getStaticPaths() {
         const data = await this.getData();
         let paths = _.map(data.pages, (page) => page.path);
-        if (process.env.NODE_ENV === 'development') {
-            paths = paths.concat(_.map(paths, (pagePath) => pagePath + (pagePath !== '/' ? '/' : '')));
-        }
         return paths;
     }
 
