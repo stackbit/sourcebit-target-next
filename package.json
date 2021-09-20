@@ -35,7 +35,7 @@
     },
     "peerDependencies": {
         "react": ">=16",
-        "next": "10.x"
+        "next": ">=10"
     },
     "devDependencies": {
         "@stackbit/prettier-config": "^1.0.0",
