@@ -1,6 +1,7 @@
 const React = require('react');
 const { withRouter } = require('next/router');
 const io = require('socket.io-client');
+const { DEFAULT_LIVE_UPDATE_PORT, LIVE_UPDATE_EVENT_NAME, LIVE_UPDATE_NAMESPACE } = require('./lib/consts');
 
 module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedComponent) {
     class Component extends React.Component {
@@ -9,11 +10,12 @@ module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedCom
                 return;
             }
             // console.log('withSSGPage componentDidMount', this.props);
-            const liveUpdatePort = this.props.liveUpdatePort || location.port;
-            const port = liveUpdatePort ? ':' + liveUpdatePort : '';
-            const eventName = this.props.liveUpdateEventName;
+            const liveUpdatePort =
+                typeof this.props.liveUpdatePort !== 'undefined' ? this.props.liveUpdatePort || location.port : DEFAULT_LIVE_UPDATE_PORT;
+            const eventName = this.props.liveUpdateEventName || LIVE_UPDATE_EVENT_NAME;
+            const namespace = this.props.liveUpdateNamespace || LIVE_UPDATE_NAMESPACE;
 
-            this.socket = io(`${location.protocol}//${location.hostname + port}/nextjs-live-updates`);
+            this.socket = io(`${location.protocol}//${location.hostname}${prefixPort(liveUpdatePort)}${namespace}`);
             this.socket.on(eventName, () => {
                 this.props.router.replace(this.props.router.pathname, this.props.router.asPath, {
                     scroll: false
@@ -49,3 +51,7 @@ module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedCom
 
     return withRouter(Component);
 };
+
+function prefixPort(port) {
+    return port ? `:${port}` : '';
+}
