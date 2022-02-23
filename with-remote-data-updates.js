@@ -1,7 +1,7 @@
 const React = require('react');
 const { withRouter } = require('next/router');
 const io = require('socket.io-client');
-const { DEFAULT_LIVE_UPDATE_PORT, LIVE_UPDATE_EVENT_NAME, LIVE_UPDATE_NAMESPACE } = require('./lib/consts');
+const { DEFAULT_LIVE_UPDATE_PORT, LIVE_UPDATE_EVENT_NAME, LIVE_UPDATE_NAMESPACE } = require('./lib/client-consts');
 
 module.exports.withRemoteDataUpdates = function withRemoteDataUpdates(WrappedComponent) {
     class Component extends React.Component {
