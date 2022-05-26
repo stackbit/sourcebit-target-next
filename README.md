@@ -125,7 +125,7 @@ methods
    your pages with following higher order component (HOC):
 
     ```js
-    import withRemoteDataUpdates from 'sourcebit-target-next/withRemoteDataUpdates';
+    import { withRemoteDataUpdates } from 'sourcebit-target-next/with-remote-data-updates';
 
     class Page extends React.Component {
         render() {
