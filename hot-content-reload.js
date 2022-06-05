@@ -54,7 +54,7 @@ module.exports.hotContentReload = function hotContentReload({
 
         return withRouter(Component);
     };
-}
+};
 
 function prefixPort(port) {
     return port ? `:${port}` : '';
