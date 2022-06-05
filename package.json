@@ -9,6 +9,10 @@
         "test": "npm run format",
         "format": "prettier --write \"./**/*.{js,jsx,md,html}\""
     },
+    "files": [
+        "lib/**/*",
+        "*.js"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/stackbithq/sourcebit-target-next.git"
